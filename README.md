@@ -4,7 +4,7 @@
 
 用太陽系簡圖＋規則式導覽小工具讀天文／太空新聞，順便學英文——每個難一點的生字都加了底線，滑過去（或點一下）就有英英解釋。純 HTML，不需安裝、不需伺服器。
 
-**▶ 立即查看**：〈Cloudflare 網址（orbital-atlas.roylin1003.workers.dev）——上線後回填〉
+**▶ 立即查看**：<https://orbital-atlas.roylin1003.workers.dev/>
 
 > 目前為 **示範版**，內容是 2026-09-17 從 Universe Today 與 NASASpaceFlight.com 擷取的一份快照，**不是即時新聞**。
 > 之後手動換文章時，這行日期跟 `index.html` 裡的 `SNAPSHOT_DATE` 常數要一起改——這個檔案不會自動同步。
