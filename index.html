@@ -1,0 +1,619 @@
+<title>Orbital Atlas</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap">
+<style>
+  :root{
+    --bg:#0a0d16; --bg-2:#0d1220; --surface:#141a2b; --surface-2:#1b2338;
+    --text:#eef1fb; --muted:#8b93ac; --accent:#6ec1ff; --save:#ffd166; --skip:#ff6b6b;
+    --line:rgba(255,255,255,.09);
+    --mono:'Space Mono',ui-monospace,'SFMono-Regular',Menlo,monospace;
+    --sans:'IBM Plex Sans',system-ui,-apple-system,sans-serif;
+
+    --c-observing-bg:rgba(110,193,255,.14); --c-observing-fg:#6ec1ff;
+    --c-astrobiology-bg:rgba(143,214,148,.14); --c-astrobiology-fg:#8fd694;
+    --c-cosmology-bg:rgba(185,140,255,.14); --c-cosmology-fg:#b98cff;
+    --c-planetary-bg:rgba(242,166,90,.14); --c-planetary-fg:#f2a65a;
+    --c-telescopes-bg:rgba(94,234,212,.14); --c-telescopes-fg:#5eead4;
+    --c-blackholes-bg:rgba(255,111,165,.14); --c-blackholes-fg:#ff6fa5;
+    --c-stars-bg:rgba(255,209,102,.14); --c-stars-fg:#ffd166;
+    --c-missions-bg:rgba(255,107,107,.14); --c-missions-fg:#ff6b6b;
+    --c-launch-bg:rgba(255,140,66,.14); --c-launch-fg:#ff8c42;
+    --c-commercial-bg:rgba(154,166,196,.14); --c-commercial-fg:#9aa6c4;
+  }
+  *{box-sizing:border-box}
+  body{
+    background:linear-gradient(180deg,var(--bg-2),var(--bg) 60%);
+    color:var(--text); font-family:var(--sans); min-height:100%;
+    padding:16px; padding-block:calc(16px + env(safe-area-inset-top,0px)) calc(16px + env(safe-area-inset-bottom,0px));
+    display:flex; justify-content:center;
+  }
+  .app{width:100%;max-width:720px;display:flex;flex-direction:column;gap:16px}
+
+  header{display:flex;align-items:baseline;justify-content:space-between;gap:12px;flex-wrap:wrap}
+  .brand{font-family:var(--mono);font-weight:700;font-size:16px;letter-spacing:.04em}
+  .brand span{color:var(--accent)}
+  .tagline{font-family:var(--mono);font-size:10.5px;color:var(--muted);letter-spacing:.03em}
+
+  .snapshot-note{
+    font-family:var(--mono);font-size:10px;color:var(--muted);background:var(--surface);
+    border:1px solid var(--line);border-radius:8px;padding:8px 12px;line-height:1.6;
+  }
+
+  .guide{display:flex;gap:8px}
+  .guide input{
+    flex:1;background:var(--surface);border:1px solid var(--line);color:var(--text);
+    border-radius:100px;padding:12px 16px;font-family:var(--sans);font-size:14px;
+  }
+  .guide input:focus{outline:2px solid var(--accent);outline-offset:1px}
+  .guide button{
+    font-family:var(--sans);font-weight:600;font-size:13px;background:var(--accent);color:#06111d;
+    border:none;border-radius:100px;padding:0 18px;cursor:pointer;
+  }
+  .guide-note{font-size:10.5px;color:var(--muted);font-family:var(--mono)}
+  .guide-response{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:12px 14px;font-size:13.5px;line-height:1.5}
+  .guide-response[hidden]{display:none}
+  .guide-response .say{color:var(--text);margin-bottom:6px}
+  .candidates{display:flex;flex-direction:column;gap:6px}
+  .cand-btn{text-align:left;background:var(--surface-2);border:1px solid var(--line);color:var(--text);border-radius:8px;padding:8px 10px;font-family:var(--sans);font-size:12.5px;cursor:pointer}
+  .cand-btn:hover{border-color:var(--accent)}
+
+  .section-label{margin:0;font-family:var(--mono);font-size:11px;letter-spacing:.05em;color:var(--muted);text-transform:uppercase}
+  .section-sub{font-size:11.5px;color:var(--muted);margin-top:-4px}
+
+  .map-wrap{
+    background:radial-gradient(circle at 20% 10%, #10182b, var(--surface) 70%);
+    border:1px solid var(--line);border-radius:16px;padding:18px 6px 26px;
+    overflow-x:auto;
+  }
+  .track{
+    position:relative;display:flex;align-items:flex-end;gap:26px;padding:34px 20px 6px;
+    min-width:max-content;
+  }
+  .track::before{
+    content:'';position:absolute;left:14px;right:14px;bottom:26px;height:1px;
+    background:linear-gradient(90deg,transparent,var(--line) 8%,var(--line) 92%,transparent);
+  }
+  .slot{position:relative;display:flex;flex-direction:column;align-items:center;gap:6px;flex:none}
+  .slot canvas{display:block;image-rendering:pixelated}
+  .slot .label{font-family:var(--mono);font-size:9px;color:var(--muted);letter-spacing:.03em;white-space:nowrap}
+  .slot.active canvas{filter:drop-shadow(0 0 6px rgba(110,193,255,.35))}
+
+  .bubble{
+    position:absolute;bottom:calc(100% + 10px);left:50%;transform:translateX(-50%);
+    background:var(--surface-2);border:1px solid var(--accent);color:var(--accent);
+    font-family:var(--sans);font-weight:600;font-size:10.5px;letter-spacing:.01em;
+    padding:6px 10px;border-radius:8px;white-space:nowrap;cursor:pointer;
+  }
+  .bubble::after{
+    content:'';position:absolute;top:100%;left:50%;transform:translateX(-50%);
+    border:5px solid transparent;border-top-color:var(--accent);
+  }
+  .bubble:hover{background:var(--accent);color:#06111d}
+  .bubble:hover::after{border-top-color:var(--accent)}
+  .bubble.pulse{animation:pulse 1.4s ease-in-out 2}
+  @keyframes pulse{0%,100%{box-shadow:0 0 0 0 rgba(110,193,255,.5)}50%{box-shadow:0 0 0 6px rgba(110,193,255,0)}}
+
+  .comet{position:relative;width:14px;height:14px}
+  .comet .core{position:absolute;right:0;bottom:0;width:6px;height:6px;border-radius:50%;background:#dfe8f5;box-shadow:0 0 6px 1px #dfe8f5}
+  .comet .tail{position:absolute;right:5px;bottom:5px;width:26px;height:5px;
+    background:linear-gradient(90deg,rgba(223,232,245,.55),transparent);
+    transform:rotate(35deg) translate(2px,0);transform-origin:right center;border-radius:4px}
+  .kbelt{display:flex;gap:2px;align-items:flex-end;height:14px}
+  .kbelt span{width:2px;height:2px;border-radius:50%;background:#6a7186}
+  .kbelt span:nth-child(2){height:4px}
+  .kbelt span:nth-child(4){height:3px}
+
+  .lists{display:flex;flex-direction:column;gap:16px}
+  .list-card{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:16px;display:flex;flex-direction:column;gap:10px}
+  .list-box{display:flex;flex-direction:column;gap:6px;max-height:230px;overflow-y:auto;padding-right:2px}
+  .list-row{
+    display:flex;align-items:center;gap:8px;background:var(--surface-2);border-radius:8px;
+    padding:8px 10px;cursor:pointer;font-size:12.5px;
+  }
+  .list-row:hover{outline:1px solid var(--accent)}
+  .list-row .dot{width:8px;height:8px;border-radius:50%;flex:none}
+  .list-row .t{flex:1;line-height:1.35}
+
+  .detail{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:18px;display:flex;flex-direction:column;gap:12px}
+  .detail-empty{color:var(--muted);font-size:13.5px;text-align:center;padding:20px 0}
+  .detail .row-top{display:flex;justify-content:space-between;align-items:flex-start;gap:8px}
+  .tag{font-family:var(--mono);font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;padding:4px 9px;border-radius:100px;white-space:nowrap}
+  .source{font-family:var(--mono);font-size:10px;color:var(--muted);letter-spacing:.05em}
+  .detail h2{font-family:var(--mono);font-size:19px;line-height:1.3;margin:0;font-weight:700;text-wrap:balance}
+  .detail p.blurb{margin:0;font-size:14.5px;line-height:1.65;color:#cfd4e6}
+
+  .gloss{border-bottom:1px dotted var(--accent);cursor:help;position:relative;color:#fff}
+  .gloss::after{content:attr(data-def);position:absolute;bottom:130%;left:50%;transform:translateX(-50%);background:#0d1424;color:var(--text);font-family:var(--sans);font-size:11.5px;line-height:1.45;font-weight:400;padding:8px 10px;border-radius:8px;width:min(220px,60vw);opacity:0;visibility:hidden;pointer-events:none;transition:opacity .12s ease;border:1px solid var(--line);box-shadow:0 10px 24px -8px #000c;z-index:20;text-transform:none;letter-spacing:normal}
+  .gloss::before{content:'';position:absolute;bottom:calc(130% - 6px);left:50%;transform:translateX(-50%);border:5px solid transparent;border-top-color:#0d1424;opacity:0;visibility:hidden;transition:opacity .12s ease;z-index:20}
+  .gloss:hover::after,.gloss:focus-visible::after,.gloss:hover::before,.gloss:focus-visible::before{opacity:1;visibility:visible}
+
+  .chips{display:flex;flex-wrap:wrap;gap:6px}
+  .chip{font-family:var(--mono);font-size:10.5px;background:var(--surface-2);border:1px solid var(--line);color:var(--muted);border-radius:100px;padding:5px 10px;cursor:pointer}
+  .chip:hover{border-color:var(--accent);color:var(--accent)}
+
+  .related-list{display:flex;flex-direction:column;gap:6px}
+  .related-item{display:flex;justify-content:space-between;align-items:center;gap:8px;background:var(--surface-2);border-radius:8px;padding:8px 10px;cursor:pointer;font-size:12.5px}
+  .related-item:hover{outline:1px solid var(--accent)}
+
+  .read-link{align-self:flex-start;font-family:var(--mono);font-size:11.5px;color:var(--accent);text-decoration:none;border-bottom:1px solid var(--accent);padding-bottom:1px}
+
+  footer{font-size:10.5px;color:var(--muted);text-align:center;line-height:1.6}
+  footer b{color:#aeb6cf}
+</style>
+
+<div class="app">
+  <header>
+    <div class="brand">ORBITAL <span>ATLAS</span></div>
+    <div class="tagline">a map, not a feed</div>
+  </header>
+
+  <div class="snapshot-note" id="snapshotNote"></div>
+
+  <div class="guide">
+    <input id="guideInput" type="text" placeholder="Try: Saturn, Venus, black hole, Starship…" />
+    <button id="guideBtn" type="button">Ask</button>
+  </div>
+  <div class="guide-note">Rule-based guide — matches keywords, no live model call.</div>
+  <div class="guide-response" id="guideResponse" hidden></div>
+
+  <div>
+    <div class="section-label">Solar System Map</div>
+    <div class="section-sub">Only stories that are genuinely about a place get pinned here.</div>
+  </div>
+  <div class="map-wrap"><div class="track" id="track"></div></div>
+
+  <div class="lists">
+    <div class="list-card">
+      <div>
+        <div class="section-label">Deep Space</div>
+        <div class="section-sub">Beyond the solar system — no single point on the map fits.</div>
+      </div>
+      <div class="list-box" id="deepList"></div>
+    </div>
+    <div class="list-card">
+      <div>
+        <div class="section-label">Missions &amp; Launches</div>
+        <div class="section-sub">These stories are about "when" and "who," not "where."</div>
+      </div>
+      <div class="list-box" id="missionList"></div>
+    </div>
+  </div>
+
+  <div class="detail" id="detail"><div class="detail-empty">Tap a bubble on the map, an item below, or ask the guide.</div></div>
+
+  <footer>
+    <b>ORBITAL ATLAS</b> — a keyword-linked reading map built from Universe Today &amp; NASASpaceFlight.com headlines.<br/>
+    Planet art from <b>pixel-forge</b> (Roy's own sprite engine). The guide box mirrors Stage&nbsp;1 (rule-based matching) of the AI-guide-kit design — no live model, no cost.
+  </footer>
+</div>
+
+<script>
+/* ── Planet renderer, frozen snapshot from ZPD/pixel-forge/src/sprites.js (2026-09-17) ──
+   Original asset system by Roy + Claude. Not synced — this is a one-time release copy. */
+(function(){
+  function hexToHsl(hex){
+    const n = parseInt(hex.slice(1), 16);
+    const r = ((n>>16)&255)/255, g = ((n>>8)&255)/255, b = (n&255)/255;
+    const mx = Math.max(r,g,b), mn = Math.min(r,g,b), d = mx-mn, l = (mx+mn)/2;
+    let h = 0, s = 0;
+    if(d){ s = l>0.5 ? d/(2-mx-mn) : d/(mx+mn);
+      h = mx===r ? ((g-b)/d + (g<b?6:0)) : mx===g ? (b-r)/d+2 : (r-g)/d+4; h *= 60; }
+    return [h, s, l];
+  }
+  function hslToHex(h, s, l){
+    h = ((h%360)+360)%360; s = Math.min(1,Math.max(0,s)); l = Math.min(1,Math.max(0,l));
+    const c = (1-Math.abs(2*l-1))*s, x = c*(1-Math.abs((h/60)%2-1)), m = l-c/2;
+    const i = Math.floor(h/60)%6;
+    const [r,g,b] = [[c,x,0],[x,c,0],[0,c,x],[0,x,c],[x,0,c],[c,0,x]][i];
+    const to = v => Math.round((v+m)*255).toString(16).padStart(2,'0');
+    return '#' + to(r) + to(g) + to(b);
+  }
+  const tintable = l => 1 - Math.abs(2*l-1)*0.55;
+
+  const BODIES = {
+    mercury: { name:'Mercury', pal:{ m:'#9a8f86', k:'#6a6158', W:'#c8bdb2' }, strip:[
+      'mmmmmmmmmmmmmmmmmmmmmmmm','mmkkmmmmmmmkkmmmmmmmmmmm','mkkkkmmmmmkkkkmmmmmkkmmm',
+      'mmkkmmWWmmmkkmmmmmkkkkmm','mmmmmmWWmmmmmmmmmmmkkmmm','mmkkmmmmmmmmmmkkmmmmmmmm',
+      'mkkkkmmmmmmmmkkkkmmWWmmm','mmkkmmmmmmmmmmkkmmmWWmmm','mmmmmmmmkkmmmmmmmmmmmmmm',
+      'mmmmmmmkkkkmmmmmmmmkkmmm','mmmmmmmmkkmmmmmmmmmmmmmm','mmmmmmmmmmmmmmmmmmmmmmmm'] },
+    venus: { name:'Venus', pal:{ m:'#e0c48a', M:'#f6e2b4', k:'#c2a163' }, strip:[
+      'MMMMMMMMMMMMMMMMMMMMMMMM','MMMMMmmmMMMMMMMmmmMMMMMM','mmmMMMMMmmmmMMMMMMmmmmMM',
+      'MMmmmmMMMMMMmmmMMMMMMmmm','mmmMMMMMmmmMMMMMMMmmmMMM','MMMMmmmMMMMMMmmmMMMMMMmm',
+      'kkkMMMMMMmmmMMMMMkkkMMMM','MMmmmMMMMMMMmmmMMMMMmmmM','mmMMMMMmmmMMMMMMMmmmMMMM',
+      'MMMMmmmMMMMMmmmMMMMMMMmm','MMMMMMMMmmmMMMMMMMMmmmMM','MMMMMMMMMMMMMMMMMMMMMMMM'] },
+    earth: { name:'Earth', pal:{ m:'#3a78c0', M:'#4f8fd2', l:'#4aa858', L:'#6cc074', W:'#eef4ff', e:'#101a26' }, strip:[
+      'WWWWWWWWWWWWWWWWWWWWWWWW','mmmllmmmmmllllmmmmmlmmmm','mmlllllmmmLllllmmmlllmmm',
+      'mmmlllmmmmmlllmmmmmLlmmm','mmeelmmmmmeelmmmmmmmlmmm','mmeemmmmmmeemmmmmmmllmmm',
+      'mmmLlmmmmmmllmmmmmmlllmm','mmllllmmmmlllmmmmmmLlmmm','mmmlllmmmmmllmmmmmmlmmmm',
+      'mmmmlmmmmmmmlmmmmmmmmmmm','mmmmmmmmmmmmmmmmmmmmmmmm','WWWWWWWWWWWWWWWWWWWWWWWW'] },
+    mars: { name:'Mars', pal:{ m:'#c9603c', M:'#dd7a52', k:'#8e3a24', W:'#f0ece4' }, strip:[
+      'WWWWWWWWWWWWWWWWWWWWWWWW','WWWmmmWWWWWmmmWWWWWmmmWW','mmkkmmmmmmmkkkmmmmmkkmmm',
+      'mkkkkmmmMMmmkkmmmmkkkkmm','mmkkmmmMMMmmmmmmmmmkkmmm','mmmmmmmmMMmmmkkmmmmmmmmm',
+      'mmkkkmmmmmmmkkkkkmmMMmmm','mkkkkkmmmmmmmkkkmmmMMmmm','mmkkkmmmkkmmmmmmmmmmmmmm',
+      'mmmmmmmkkkkmmmmmmmmkkmmm','WWmmmWWWkkWWWWWmmmWWWWWW','WWWWWWWWWWWWWWWWWWWWWWWW'] },
+    jupiter: { name:'Jupiter', pal:{ M:'#f2dcb8', m:'#e0b888', k:'#b07a50', R:'#c85040', e:'#2a1c12' }, strip:[
+      'kkkkkkkkkkkkkkkkkkkkkkkk','MMMMMMMMMMMMMMMMMMMMMMMM','kkkkkkkkkkkkkkkkkkkkkkkk',
+      'MMMMMMMMMMMMMMMMMMMMMMMM','MMeeMMMMMMMMeeMMMMMMMMMM','MMeeMMMMMMMMeeMMMMMMMMMM',
+      'mmmmmmmmmmmmmmmmmmmmmmmm','MMMMMMMRRRRMMMMMMMMMMMMM','kkkkkkkRRRkkkkkkkkkkkkkk',
+      'MMMMMMMMMMMMMMMMMMMMMMMM','kkkkkkkkkkkkkkkkkkkkkkkk','MMMMMMMMMMMMMMMMMMMMMMMM'] },
+    saturn: { name:'Saturn', pal:{ M:'#f6e6c0', m:'#e8cc90', k:'#c09858' },
+      ring:{ inner:1.25, outer:2.05, tilt:0.42, pal:['#f6e6b8','#e8cc90','#c09858','#8a6a38'] }, strip:[
+      'kkkkkkkkkkkkkkkkkkkkkkkk','MMMMMMMMMMMMMMMMMMMMMMMM','mmmmmmmmmmmmmmmmmmmmmmmm',
+      'MMMMMMMMMMMMMMMMMMMMMMMM','MMMMMMMMMMMMMMMMMMMMMMMM','kkkkkkkkkkkkkkkkkkkkkkkk',
+      'MMMMMMMMMMMMMMMMMMMMMMMM','MMMMMMMMMMMMMMMMMMMMMMMM','mmmmmmmmmmmmmmmmmmmmmmmm',
+      'MMMMMMMMMMMMMMMMMMMMMMMM','kkkkkkkkkkkkkkkkkkkkkkkk','MMMMMMMMMMMMMMMMMMMMMMMM'] },
+    uranus: { name:'Uranus', pal:{ M:'#bfe9ea', m:'#9ad8dc', k:'#74b8c0' },
+      ring:{ inner:1.3, outer:1.6, tilt:1.45, roll:1.4, pal:['#cfeff0','#9ad8dc','#6aa2ac','#4a7c88'] }, strip:[
+      'MMMMMMMMMMMMMMMMMMMMMMMM','MMMMMMMMMMMMMMMMMMMMMMMM','mmmmmmmmmmmmmmmmmmmmmmmm',
+      'MMMMMMMMMMMMMMMMMMMMMMMM','MMMMMMMMMMMMMMMMMMMMMMMM','mmmmmmmmmmmmmmmmmmmmmmmm',
+      'MMMMMMMMMMMMMMMMMMMMMMMM','MMMMMMMMMMMMMMMMMMMMMMMM','kkkkkkkkkkkkkkkkkkkkkkkk',
+      'MMMMMMMMMMMMMMMMMMMMMMMM','mmmmmmmmmmmmmmmmmmmmmmmm','MMMMMMMMMMMMMMMMMMMMMMMM'] },
+    neptune: { name:'Neptune', pal:{ M:'#5a86d8', m:'#3f66bc', k:'#2a4a92', D:'#1c2f60' }, strip:[
+      'mmmmmmmmmmmmmmmmmmmmmmmm','MMMMMMMMMMMMMMMMMMMMMMMM','mmmmmmmmmmmmmmmmmmmmmmmm',
+      'MMMMMMMMMMMMMMMMMMMMMMMM','mmmmmmmmmmmmmmmmmmmmmmmm','MMMMMMMMMMMMMMMMMMMMMMMM',
+      'mmmDDDDmmmmmmmmmmmmmmmmm','MMMDDDMMMMMMMMMMMMMMMMMM','mmmmmmmmmmmmmmmmmmmmmmmm',
+      'kkkkkkkkkkkkkkkkkkkkkkkk','MMMMMMMMMMMMMMMMMMMMMMMM','mmmmmmmmmmmmmmmmmmmmmmmm'] },
+    sun: { name:'Sun', flat:true, glow:'#f8a038', pal:{ Y:'#ffe89a', y:'#f8c848', o:'#f09028', k:'#b05818' }, strip:[
+      'yyyyyyyyyyyyyyyyyyyyyyyy','yYYyyyoyyyyYYyyyyyoyyyYy','yyyyYYyyyyyyyyoyyYYyyyyy',
+      'yoyyyyyyYYyyyyyyyyyyoyyy','yyyyYYyyyyykkyyyyyyyyYYy','YYyyyyoyyyykkyyyoyyyyyyy',
+      'yyyyyyyyyYYyyyyyyyYYyyyy','yykkyyyyyyyyyyoyyyyyyyoy','yykkyyYYyyyyyyyyyyYYyyyy',
+      'yyyyyyyyyyoyyyYYyyyyyyyy','yYYyyyyyyyyyyyyyyyyoyyyy','yyyyyyyyyyyyyyyyyyyyyyyy'] },
+    moon: { name:'Moon', pal:{ m:'#d0d4dc', M:'#e8ecf2', k:'#a0a6b2', K:'#7c8290' }, strip:[
+      'mmmmmmmmmmmmmmmmmmmmmmmm','mmkkmmmmmmmMMmmmmmmkkmmm','mKKKKmmmmmmmmmmmmmkkkkmm',
+      'mmKKmmmkkkmmMMmmmmmkkmmm','mmmmmmkKKKkmmmmmmmmmmmmm','mmMMmmkKKKkmmmkkmmmMMmmm',
+      'mmmmmmmkkkmmmkKKkmmmmmmm','mmkkmmmmmmmmmmkkmmmmmmmm','mkkkkmmmMMmmmmmmmmmkkmmm',
+      'mmkkmmmmmmmmmmmmmmkkkkmm','mmmmmmmmmmmmmmmmmmmkkmmm','mmmmmmmmmmmmmmmmmmmmmmmm'] }
+  };
+
+  const BODY_LIGHT = (() => { const v = [Math.cos(5.4978), Math.sin(5.4978), .62];
+    const n = Math.hypot(...v); return v.map(x => x / n); })();
+  function bodyShade(hex, lam, warm){
+    const [h, s, l] = hexToHsl(hex), amt = tintable(l);
+    const nl = Math.min(.98, Math.max(.02, l + (lam - .5) * 0.5 * amt));
+    const dh = ((( (lam > .5 ? 42 : 232) - h) + 540) % 360) - 180;
+    return hslToHex(h + dh * Math.abs(lam - .5) * warm * amt, Math.min(1, s * (lam > .5 ? .94 : 1.12)), nl);
+  }
+  function bodySphere(cx2, body, cx, cy, R, spin, opt){
+    const st = body.strip, SW = st[0].length, SH = st.length;
+    for(let py = Math.floor(cy - R); py <= Math.ceil(cy + R); py++)
+    for(let px = Math.floor(cx - R); px <= Math.ceil(cx + R); px++){
+      const u = (px - cx) / R, v = (py - cy) / R, q = u * u + v * v;
+      if(q > 1) continue;
+      const w = Math.sqrt(1 - q);
+      const lat = Math.asin(Math.max(-1, Math.min(1, v)));
+      const lon = Math.atan2(u, w) + spin;
+      let sx = Math.floor(((((lon / (2 * Math.PI)) % 1) + 1) % 1) * SW); if(sx >= SW) sx = SW - 1;
+      let sy = Math.floor((lat + Math.PI / 2) / Math.PI * SH); if(sy >= SH) sy = SH - 1;
+      const base = body.pal[st[sy][sx]]; if(!base) continue;
+      const lam = body.flat ? .5 + .28 * (1 - q)
+        : .5 + .5 * (u * opt.light[0] + v * opt.light[1] + w * opt.light[2]) * (1 - opt.amb);
+      cx2.fillStyle = bodyShade(base, lam, opt.warm); cx2.fillRect(px, py, 1, 1);
+    }
+  }
+  function bodyDisc(cx2, body, cx, cy, R, spin, opt, near){
+    const g = body.ring, ct = Math.cos(g.tilt), stt = Math.sin(g.tilt);
+    const roll = g.roll || 0, cr = Math.cos(roll), sr = Math.sin(roll);
+    const steps = Math.ceil(2 * Math.PI * g.outer * R * 2.2);
+    for(let i = 0; i < steps; i++){
+      const a = i / steps * 2 * Math.PI;
+      for(let r = g.inner; r <= g.outer; r += 0.35 / R){
+        const ex = r * Math.cos(a), ey = r * Math.sin(a) * stt, dep = r * Math.sin(a) * ct;
+        if((dep > 0) !== near) continue;
+        const px = Math.round(cx + (ex * cr - ey * sr) * R), py = Math.round(cy + (ex * sr + ey * cr) * R);
+        const t = (r - g.inner) / (g.outer - g.inner);
+        let base;
+        if(g.hot){ base = g.pal[t < .16 ? 0 : t < .4 ? 1 : t < .72 ? 2 : 3]; }
+        else { base = g.pal[(t < .1 || (t > .42 && t < .52)) ? 3 : t < .3 ? 0 : t < .7 ? 1 : 2]; }
+        const lam = g.hot ? .58 : .5 + .5 * (-stt * opt.light[1] + ct * opt.light[2]) * (1 - opt.amb);
+        cx2.fillStyle = bodyShade(base, lam, opt.warm); cx2.fillRect(px, py, 1, 1);
+      }
+    }
+  }
+  function bodyCanvas(key, opts = {}){
+    const body = BODIES[key];
+    const R = opts.r || 15, spin = opts.spin || 0;
+    const opt = { light: opts.light || BODY_LIGHT, amb: opts.amb === undefined ? .22 : opts.amb, warm: opts.warm === undefined ? .2 : opts.warm };
+    const pad = Math.ceil((body.ring ? body.ring.outer : 1) * R) + 2;
+    const c = document.createElement('canvas'); c.width = c.height = pad * 2;
+    const x = c.getContext('2d'), cx = pad - .5, cy = pad - .5;
+    if(body.glow){
+      for(let i = 0; i < 3; i++){ x.globalAlpha = .10 - i * .03; x.fillStyle = body.glow;
+        x.beginPath(); x.arc(cx, cy, R * (1.12 + i * .16), 0, 7); x.fill(); }
+      x.globalAlpha = 1;
+    }
+    if(body.ring) bodyDisc(x, body, cx, cy, R, spin, opt, false);
+    bodySphere(x, body, cx, cy, R, spin, opt);
+    if(body.ring) bodyDisc(x, body, cx, cy, R, spin, opt, true);
+    return c;
+  }
+  window.pfBodyCanvas = bodyCanvas;
+})();
+</script>
+
+<script>
+(function(){
+  var CATS = {
+    observing:{label:'Observing', cls:'observing'},
+    astrobiology:{label:'Astrobiology', cls:'astrobiology'},
+    cosmology:{label:'Cosmology', cls:'cosmology'},
+    planetary:{label:'Planetary Sci.', cls:'planetary'},
+    telescopes:{label:'Telescopes', cls:'telescopes'},
+    blackholes:{label:'Black Holes', cls:'blackholes'},
+    stars:{label:'Stars', cls:'stars'},
+    missions:{label:'Missions', cls:'missions'},
+    launch:{label:'Launch', cls:'launch'},
+    commercial:{label:'Commercial', cls:'commercial'}
+  };
+  function g(word, def){ return '<span class="gloss" tabindex="0" data-def="'+def.replace(/"/g,'&quot;')+'">'+word+'</span>'; }
+  function stripTags(s){ return s.replace(/<[^>]+>/g,''); }
+
+  // ── The ONE place to edit when you refresh the article content below ──
+  var SNAPSHOT_DATE = '2026-09-17';
+  document.getElementById('snapshotNote').textContent =
+    'Snapshot captured ' + SNAPSHOT_DATE + ' from Universe Today & NASASpaceFlight.com — a demo edition, not a live feed.';
+  // README.md's date line is a separate file and won't update itself — change it too.
+
+  var ARTICLES = [
+    {id:'a0', zone:'map', slot:'interstellar', source:'UNIVERSE TODAY', cat:'observing',
+     title:'New Revelations About the Origin of Interstellar Comet 3I/ATLAS',
+     keywords:['interstellar object','comet','spectroscopy','solar system'], bubbleLabel:'Interstellar visitor',
+     blurb:'Spectral analysis shows this '+g('interstellar','Existing or traveling between the stars, outside any single solar system.')+' comet formed in extreme cold, far from its home star — the third confirmed visitor of its kind, and the most detailed origin story yet.',
+     meta:'Matthew Williams · 57K reads', url:'https://www.universetoday.com/articles/new-revelations-about-the-origin-of-interstellar-comet-3iatlas'},
+    {id:'a1', zone:'map', slot:'moon', source:'UNIVERSE TODAY', cat:'astrobiology',
+     title:'Could the Clues to Ancient Alien Civilizations Be Hiding in a Bucket of Moon Dust?',
+     keywords:['SETI','Moon','astrobiology','ancient civilization'], bubbleLabel:'Alien clues?',
+     blurb:'Rather than betting that an alien radio signal happens to arrive during our lifetime, one '+g('SETI','Search for Extraterrestrial Intelligence — the scientific effort to detect signals from intelligent life beyond Earth.')+' researcher suggests searching '+g('lunar','Relating to the Moon.')+' dust for physical traces an ancient civilization might have left behind.',
+     meta:'Andy Tomaswick · 11K reads', url:'https://www.universetoday.com/'},
+    {id:'a4', zone:'map', slot:'saturn', source:'UNIVERSE TODAY', cat:'planetary',
+     title:"Saturn's South Pole Features Newly Formed Atmospheric Decagon",
+     keywords:['Saturn','atmosphere','polar storm','planetary science'], bubbleLabel:'New decagon',
+     blurb:"Saturn's north pole is famous for its "+g('hexagonal','Having six straight sides.')+' storm; the south pole has just revealed a newly formed '+g('decagon','A shape with ten straight sides.')+'-shaped one instead.',
+     meta:'Laurence Tognetti · 7.6K reads', url:'https://www.universetoday.com/'},
+    {id:'a6', zone:'map', slot:'kuiper', source:'UNIVERSE TODAY', cat:'planetary',
+     title:'For Trans-Neptunian Objects, The Past Is Written On Their Surface',
+     keywords:['trans-Neptunian object','Kuiper Belt','solar system','planetary science'], bubbleLabel:'Surface colors',
+     blurb:'Did a '+g('trans-Neptunian','Located in the outer solar system, beyond the orbit of Neptune.')+' object form far out in the cold, or migrate there from closer to the Sun? The answer may be written in the color of its surface.',
+     meta:'Brian Koberlein · Planetary Science', url:'https://www.universetoday.com/'},
+    {id:'a7', zone:'map', slot:'venus', source:'UNIVERSE TODAY', cat:'planetary',
+     title:'If Venus Had An Ancient Moon, It Was Doomed',
+     keywords:['Venus','moon','tidal forces','planetary science'], bubbleLabel:'Doomed moon?',
+     blurb:'Earth has a large moon; Venus doesn\'t. New research suggests Venus may once have had one too — just not for long, as '+g('tidal forces','The stretching pull created when one body\'s gravity acts unevenly across another nearby body.')+' would have doomed it from the start.',
+     meta:'Evan Gough · Planetary Science', url:'https://www.universetoday.com/'},
+
+    {id:'a2', zone:'deep', source:'UNIVERSE TODAY', cat:'cosmology',
+     title:'A New Catalog of Close to 3,000 Supernova Challenges Theories on Dark Energy',
+     keywords:['supernova','dark energy','cosmology','catalog'],
+     blurb:'A new catalog of nearly 3,000 '+g('supernovae','Plural of supernova: the explosive death of a massive star, briefly outshining its entire galaxy.')+' is putting cracks in the long-held assumption that '+g('dark energy','A mysterious, unseen force thought to be causing the universe\'s expansion to speed up.')+' never changes.',
+     meta:'Matthew Williams · 17K reads', url:'https://www.universetoday.com/'},
+    {id:'a8', zone:'deep', source:'UNIVERSE TODAY', cat:'blackholes',
+     title:'If Black Holes Have Hair, We Will See It in the Ringdown of Their Mergers',
+     keywords:['black hole','gravitational waves','ringdown','general relativity'],
+     blurb:'If black holes really do have "hair," the evidence may show up in the '+g('ringdown','The fading vibration of spacetime left behind just after two black holes merge.')+' — the fading vibration left behind after two black holes merge.',
+     meta:'Brian Koberlein · Black Holes', url:'https://www.universetoday.com/'},
+    {id:'a9', zone:'deep', source:'UNIVERSE TODAY', cat:'stars',
+     title:'ALMA is Watching a Massive Binary Star System Form',
+     keywords:['ALMA','binary star system','star formation','protoplanetary disk'],
+     blurb:'Eight years of observations let astronomers build a 3D picture of a massive '+g('binary star system','Two stars bound together by gravity, orbiting a shared center of mass.')+' still forming — its disks are all misaligned, hinting at a chaotic birth.',
+     meta:'Evan Gough · Stars', url:'https://www.universetoday.com/'},
+
+    {id:'a3', zone:'missions', source:'UNIVERSE TODAY', cat:'missions',
+     title:'A New Design For A Plasma Engine Fuels On Only Thin Air',
+     keywords:['plasma','propulsion','propellant','spacecraft engine'],
+     blurb:'A new '+g('plasma','A hot, electrically charged gas — often called the fourth state of matter.')+' engine design claims it can run on nothing but the wisp of atmosphere it flies through, with no '+g('propellant','The fuel (and oxidizer) a rocket or engine burns to produce thrust.')+' to carry along.',
+     meta:'Andy Tomaswick · 16K reads', url:'https://www.universetoday.com/'},
+    {id:'a5', zone:'missions', source:'UNIVERSE TODAY', cat:'telescopes',
+     title:"Nancy Grace Roman Space Telescope's Mission Extended: 10 to 22 Years",
+     keywords:['Roman Space Telescope','NASA','mission extension','course correction'],
+     blurb:'An unusually fuel-efficient first '+g('course correction','A small engine burn used to fine-tune a spacecraft\'s trajectory.')+" means NASA's Roman Space Telescope's mission just grew from ten years to twenty-two.",
+     meta:'Evan Gough · 6.7K reads', url:'https://www.universetoday.com/'},
+    {id:'a10', zone:'missions', source:'NASASPACEFLIGHT', cat:'telescopes',
+     title:'Roman Telescope Deploys Solar Array and Communication Systems',
+     keywords:['Roman Space Telescope','NASA','commissioning','solar array'],
+     blurb:"NASA's Roman Space Telescope has deployed its solar array and communication systems, moving into the next phase of on-orbit "+g('commissioning','The process of testing and calibrating new hardware before it\'s declared fully operational.')+'.',
+     meta:'NASASpaceFlight.com', url:'https://www.nasaspaceflight.com/2026/09/roman-commissioning-update/'},
+    {id:'a11', zone:'missions', source:'NASASPACEFLIGHT', cat:'missions',
+     title:"Flight 15 Pairing Undergoes Testing at Massey's",
+     keywords:['Starship','SpaceX','booster',"Massey's"],
+     blurb:'SpaceX is testing the '+g('booster','The large first-stage rocket that provides the initial thrust of a launch.')+"-and-ship pairing for the next Starship test flight at its Massey's test site.",
+     meta:'NASASpaceFlight.com', url:'https://www.nasaspaceflight.com/2026/09/flight-15-pairing-masseys/'},
+    {id:'a12', zone:'missions', source:'NASASPACEFLIGHT', cat:'launch',
+     title:'Launch Preview: Soyuz, CZ-8A, and Falcon 9',
+     keywords:['Soyuz','Long March','Falcon 9','launch schedule'],
+     blurb:"This week's launch preview lines up a Soyuz, a "+g('Long March','The family name for China\'s series of national orbital rockets.')+' 8A, and a Falcon 9, among others, all queued for liftoff.',
+     meta:'NASASpaceFlight.com', url:'https://www.nasaspaceflight.com/2026/09/launch-preview-090726/'},
+    {id:'a13', zone:'missions', source:'NASASPACEFLIGHT', cat:'missions',
+     title:'Artemis III SLS Stacking Advances as Orion Results Come In',
+     keywords:['Artemis','SLS','Orion','stacking'],
+     blurb:g('Stacking','Assembling a rocket by placing its stages and boosters one on top of another.')+' continues on the SLS rocket for Artemis III, while engineers report progress fixing an issue with the Artemis II Orion spacecraft.',
+     meta:'NASASpaceFlight.com', url:'https://www.nasaspaceflight.com/2026/09/artemis-iii-sls-stacking-artemis-ii-orion-fix/'},
+    {id:'a14', zone:'missions', source:'NASASPACEFLIGHT', cat:'missions',
+     title:'Starbase Infrastructure Advances Toward Flight 14',
+     keywords:['Starbase','SpaceX','Starship','infrastructure'],
+     blurb:'Ground infrastructure at Starbase keeps expanding as SpaceX prepares for the next Starship test flight.',
+     meta:'NASASpaceFlight.com', url:'https://www.nasaspaceflight.com/2026/09/starbase-infrastructure-spacex-flight-14/'},
+    {id:'a15', zone:'missions', source:'NASASPACEFLIGHT', cat:'launch',
+     title:'Progress MS-35 Poised to Launch Cargo to ISS',
+     keywords:['Progress','ISS','cargo spacecraft','Kazakhstan'],
+     blurb:'After the Progress MS-33 cargo craft '+g('undocked','Separated from a docking port, such as one on a space station.')+' from the ISS, MS-35 is ready to launch fresh supplies from Kazakhstan.',
+     meta:'NASASpaceFlight.com', url:'https://www.nasaspaceflight.com/2026/09/progress-ms-35-launch/'},
+    {id:'a16', zone:'missions', source:'NASASPACEFLIGHT', cat:'launch',
+     title:'Launch Preview: Nine Orbital Launches Scheduled',
+     keywords:['launch schedule','orbital launch'],
+     blurb:"This week's preview counts nine orbital launches scheduled across sites worldwide.",
+     meta:'NASASpaceFlight.com', url:'https://www.nasaspaceflight.com/2026/09/launch-preview-091526/'},
+    {id:'a17', zone:'missions', source:'NASASPACEFLIGHT', cat:'missions',
+     title:'Ship 42 Wraps Chopsticks Tests, Flight 14 Moves Forward',
+     keywords:['Starship','chopsticks','SpaceX','Flight 14'],
+     blurb:"Starship's Ship 42 has wrapped '"+g('chopsticks','The nickname for the giant mechanical arms that catch a returning rocket booster at the launch tower.')+"' catch tests, as the timeline for the 14th test flight keeps moving forward.",
+     meta:'NASASpaceFlight.com', url:'https://www.nasaspaceflight.com/2026/09/ship-42-chopsticks-tests-flight-14-net/'},
+    {id:'a18', zone:'missions', source:'NASASPACEFLIGHT', cat:'launch',
+     title:'Vega C Set to Launch the ESA Sentinel-3C',
+     keywords:['Vega C','ESA','Sentinel','Earth observation'],
+     blurb:"Europe's Vega C rocket is preparing to launch the Sentinel-3C Earth-observation satellite.",
+     meta:'NASASpaceFlight.com', url:'https://www.nasaspaceflight.com/2026/09/vega-c-launch-sentinel-3c-flex/'},
+    {id:'a19', zone:'missions', source:'NASASPACEFLIGHT', cat:'commercial',
+     title:"Europe's Commercial Launch Sector Picking Up the Pace",
+     keywords:['commercial launch','Europe','launch industry'],
+     blurb:"Europe's commercial launch industry has been picking up the pace lately, with several newer companies racing to catch up.",
+     meta:'NASASpaceFlight.com', url:'https://www.nasaspaceflight.com/2026/09/europes-commercial-launch-sector-pace/'}
+  ];
+
+  ARTICLES.forEach(function(a){ a.blurbText = stripTags(a.blurb); });
+  var byId = {}; ARTICLES.forEach(function(a){ byId[a.id] = a; });
+
+  var links = [];
+  for(var i=0;i<ARTICLES.length;i++)for(var j=i+1;j<ARTICLES.length;j++){
+    var shared = ARTICLES[i].keywords.filter(function(k){ return ARTICLES[j].keywords.indexOf(k) !== -1; });
+    if(shared.length) links.push({a:ARTICLES[i].id, b:ARTICLES[j].id, shared:shared});
+  }
+  function relatedFor(id){
+    return links.filter(function(l){ return l.a===id || l.b===id; })
+      .map(function(l){ return { other: byId[l.a===id? l.b : l.a], shared: l.shared }; })
+      .sort(function(x,y){ return y.shared.length - x.shared.length; });
+  }
+
+  function escapeHtml(s){ return s.replace(/[&<>"']/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
+
+  // ---- solar system track ----
+  var PLANETS = [
+    {key:'sun', r:22}, {key:'mercury', r:9}, {key:'venus', r:15, slot:'venus'},
+    {key:'earthmoon', r:16}, {key:'mars', r:12}, {key:'jupiter', r:30},
+    {key:'saturn', r:24, slot:'saturn'}, {key:'uranus', r:18}, {key:'neptune', r:17},
+    {key:'kuiper', slot:'kuiper'}, {key:'interstellar', slot:'interstellar'}
+  ];
+  var track = document.getElementById('track');
+  var bySlot = {};
+  ARTICLES.forEach(function(a){ if(a.zone==='map') bySlot[a.slot] = a; });
+
+  PLANETS.forEach(function(p){
+    var slotEl = document.createElement('div');
+    slotEl.className = 'slot' + (p.slot ? ' active' : '');
+    var label = document.createElement('div'); label.className = 'label';
+
+    if(p.key === 'earthmoon'){
+      var wrap = document.createElement('div');
+      wrap.style.cssText = 'display:flex;align-items:flex-end;gap:4px';
+      var earthC = window.pfBodyCanvas('earth', {r:16});
+      var moonWrap = document.createElement('div'); moonWrap.style.position='relative';
+      var moonC = window.pfBodyCanvas('moon', {r:7});
+      moonWrap.appendChild(moonC);
+      wrap.appendChild(earthC); wrap.appendChild(moonWrap);
+      slotEl.appendChild(wrap);
+      label.textContent = 'Earth · Moon';
+      if(bySlot.moon) attachBubble(moonWrap, bySlot.moon);
+    } else if(p.key === 'kuiper'){
+      var kb = document.createElement('div'); kb.className = 'kbelt';
+      for(var i=0;i<5;i++) kb.appendChild(document.createElement('span'));
+      slotEl.appendChild(kb);
+      label.textContent = 'Kuiper Belt';
+      if(bySlot.kuiper) attachBubble(slotEl, bySlot.kuiper);
+    } else if(p.key === 'interstellar'){
+      var cm = document.createElement('div'); cm.className = 'comet';
+      cm.innerHTML = '<div class="tail"></div><div class="core"></div>';
+      slotEl.appendChild(cm);
+      label.textContent = '3I/ATLAS';
+      if(bySlot.interstellar) attachBubble(slotEl, bySlot.interstellar);
+    } else {
+      var c = window.pfBodyCanvas(p.key, {r:p.r});
+      slotEl.appendChild(c);
+      label.textContent = p.key.charAt(0).toUpperCase()+p.key.slice(1);
+      if(p.slot && bySlot[p.slot]) attachBubble(slotEl, bySlot[p.slot]);
+    }
+    slotEl.appendChild(label);
+    slotEl.id = 'slot-' + p.key;
+    track.appendChild(slotEl);
+  });
+
+  function attachBubble(anchorEl, article){
+    var b = document.createElement('div');
+    b.className = 'bubble';
+    b.textContent = article.bubbleLabel;
+    b.addEventListener('click', function(){ selectArticle(article.id); });
+    anchorEl.style.position = anchorEl.style.position || 'relative';
+    anchorEl.appendChild(b);
+  }
+
+  // ---- deep space + missions lists ----
+  function renderList(containerId, zone){
+    var el = document.getElementById(containerId);
+    ARTICLES.filter(function(a){ return a.zone===zone; }).forEach(function(a){
+      var row = document.createElement('div');
+      row.className = 'list-row';
+      row.innerHTML = '<span class="dot" style="background:var(--c-'+CATS[a.cat].cls+'-fg)"></span><span class="t">'+escapeHtml(a.title)+'</span>';
+      row.addEventListener('click', function(){ selectArticle(a.id); document.getElementById('detail').scrollIntoView({behavior:'smooth', block:'start'}); });
+      el.appendChild(row);
+    });
+  }
+  renderList('deepList', 'deep');
+  renderList('missionList', 'missions');
+
+  // ---- detail panel ----
+  function selectArticle(id){
+    var a = byId[id], cat = CATS[a.cat], rel = relatedFor(id);
+    var html =
+      '<div class="row-top">' +
+        '<span class="tag" style="background:var(--c-'+cat.cls+'-bg);color:var(--c-'+cat.cls+'-fg)">'+cat.label+'</span>' +
+        '<span class="source">'+escapeHtml(a.source)+'</span>' +
+      '</div>' +
+      '<h2>'+escapeHtml(a.title)+'</h2>' +
+      '<p class="blurb">'+a.blurb+'</p>' +
+      '<div class="section-label">Keywords</div>' +
+      '<div class="chips">' + a.keywords.map(function(k){ return '<span class="chip" data-kw="'+escapeHtml(k)+'">'+escapeHtml(k)+'</span>'; }).join('') + '</div>';
+    if(rel.length){
+      html += '<div><div class="section-label">Related Articles</div><div class="related-list">' +
+        rel.slice(0,3).map(function(r){
+          return '<div class="related-item" data-goto="'+r.other.id+'"><span>'+escapeHtml(r.other.title)+'</span><span style="color:var(--muted);font-family:var(--mono);font-size:10px">via '+escapeHtml(r.shared[0])+'</span></div>';
+        }).join('') + '</div></div>';
+    }
+    html += '<a class="read-link" href="'+a.url+'" target="_blank" rel="noopener">Read the original article →</a>';
+
+    var detail = document.getElementById('detail');
+    detail.innerHTML = html;
+    detail.querySelectorAll('.chip').forEach(function(el){ el.addEventListener('click', function(){ runGuide(el.getAttribute('data-kw')); document.getElementById('guideInput').value = el.getAttribute('data-kw'); }); });
+    detail.querySelectorAll('.related-item').forEach(function(el){ el.addEventListener('click', function(){ selectArticle(el.getAttribute('data-goto')); detail.scrollIntoView({behavior:'smooth', block:'start'}); }); });
+
+    if(a.zone==='map'){
+      var slotEl = document.getElementById('slot-'+a.slot);
+      document.querySelectorAll('.bubble').forEach(function(b){ b.classList.remove('pulse'); });
+      if(slotEl){
+        slotEl.scrollIntoView({behavior:'smooth', inline:'center', block:'nearest'});
+        var bub = slotEl.querySelector('.bubble'); if(bub){ bub.classList.add('pulse'); }
+      }
+    }
+  }
+
+  // ---- rule-based guide ----
+  function scoreArticle(a, q){
+    q = q.toLowerCase().trim(); if(!q) return 0;
+    var s = 0;
+    if(a.title.toLowerCase().indexOf(q) !== -1) s += 3;
+    a.keywords.forEach(function(k){ var kl=k.toLowerCase(); if(kl.indexOf(q)!==-1 || q.indexOf(kl)!==-1) s += 2; });
+    if(a.blurbText.toLowerCase().indexOf(q) !== -1) s += 1;
+    return s;
+  }
+  function runGuide(query){
+    var respEl = document.getElementById('guideResponse');
+    if(!query.trim()){ respEl.hidden = true; return; }
+    var scored = ARTICLES.map(function(a){ return {a:a, s:scoreArticle(a, query)}; })
+      .filter(function(x){ return x.s>0; }).sort(function(x,y){ return y.s - x.s; });
+    respEl.hidden = false;
+    if(!scored.length){
+      respEl.innerHTML = '<div class="say">No article matches "'+escapeHtml(query)+'". Try a planet name or a keyword like "black hole."</div>';
+      return;
+    }
+    var top = scored[0], second = scored[1];
+    if(!second || top.s >= second.s * 1.4){
+      respEl.innerHTML = '<div class="say">Here: <b>'+escapeHtml(top.a.title)+'</b></div>';
+      selectArticle(top.a.id);
+      document.getElementById('detail').scrollIntoView({behavior:'smooth', block:'start'});
+    } else {
+      respEl.innerHTML = '<div class="say">A few matches for "'+escapeHtml(query)+'":</div><div class="candidates">' +
+        scored.slice(0,3).map(function(c){ return '<button class="cand-btn" data-goto="'+c.a.id+'">'+escapeHtml(c.a.title)+'</button>'; }).join('') + '</div>';
+      respEl.querySelectorAll('.cand-btn').forEach(function(btn){
+        btn.addEventListener('click', function(){ selectArticle(btn.getAttribute('data-goto')); document.getElementById('detail').scrollIntoView({behavior:'smooth', block:'start'}); });
+      });
+    }
+  }
+  document.getElementById('guideBtn').addEventListener('click', function(){ runGuide(document.getElementById('guideInput').value); });
+  document.getElementById('guideInput').addEventListener('keydown', function(e){ if(e.key==='Enter') runGuide(e.target.value); });
+})();
+</script>

@@ -1,0 +1,8 @@
+## 快取規則（Cloudflare Pages 通用的 _headers 格式）。
+## 單檔靜態站，沒有 staging——改完就直接是線上版，所以每次載入都要回頭問過伺服器有沒有新版。
+
+/index.html
+  Cache-Control: public, max-age=0, must-revalidate
+
+/
+  Cache-Control: public, max-age=0, must-revalidate
