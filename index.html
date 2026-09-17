@@ -28,6 +28,15 @@
   }
   .app{width:100%;max-width:720px;display:flex;flex-direction:column;gap:16px}
 
+  /* Touch hygiene (Gem-Drop-Arcade lesson, 2026-09-13): without these four,
+     buttons flash grey on tap, long-press pops a copy menu, and every tap
+     waits ~300ms for the double-tap-zoom check — small things that add up
+     to "this doesn't feel like an app." */
+  .bubble, .chip, .btn, .cand-btn, .list-row, .related-item, .guide button, .restart{
+    touch-action:manipulation; -webkit-tap-highlight-color:transparent;
+    -webkit-touch-callout:none; user-select:none;
+  }
+
   header{display:flex;align-items:baseline;justify-content:space-between;gap:12px;flex-wrap:wrap}
   .brand{font-family:var(--mono);font-weight:700;font-size:16px;letter-spacing:.04em}
   .brand span{color:var(--accent)}
@@ -63,6 +72,14 @@
     background:radial-gradient(circle at 20% 10%, #10182b, var(--surface) 70%);
     border:1px solid var(--line);border-radius:16px;padding:18px 6px 26px;
     overflow-x:auto;
+    /* The map is a diagram, not prose — on a wide monitor it shouldn't be
+       stuck inside the 720px reading column and forced to scroll when the
+       full row would otherwise fit. Prose blocks (guide response, detail
+       panel) stay at 720px for line-length; this one alone breaks out. */
+    width:100%; max-width:1100px; margin-left:auto; margin-right:auto;
+  }
+  @media (min-width:1100px){
+    .map-wrap{ width:100vw; max-width:1100px; margin-left:calc(50% - 50vw); margin-right:calc(50% - 50vw); }
   }
   .track{
     position:relative;display:flex;align-items:flex-end;gap:26px;padding:34px 20px 6px;
@@ -124,7 +141,12 @@
   .gloss{border-bottom:1px dotted var(--accent);cursor:help;position:relative;color:#fff}
   .gloss::after{content:attr(data-def);position:absolute;bottom:130%;left:50%;transform:translateX(-50%);background:#0d1424;color:var(--text);font-family:var(--sans);font-size:11.5px;line-height:1.45;font-weight:400;padding:8px 10px;border-radius:8px;width:min(220px,60vw);opacity:0;visibility:hidden;pointer-events:none;transition:opacity .12s ease;border:1px solid var(--line);box-shadow:0 10px 24px -8px #000c;z-index:20;text-transform:none;letter-spacing:normal}
   .gloss::before{content:'';position:absolute;bottom:calc(130% - 6px);left:50%;transform:translateX(-50%);border:5px solid transparent;border-top-color:#0d1424;opacity:0;visibility:hidden;transition:opacity .12s ease;z-index:20}
-  .gloss:hover::after,.gloss:focus-visible::after,.gloss:hover::before,.gloss:focus-visible::before{opacity:1;visibility:visible}
+  .gloss:hover::after,.gloss:focus-visible::after,.gloss:focus::after,
+  .gloss:hover::before,.gloss:focus-visible::before,.gloss:focus::before{opacity:1;visibility:visible}
+  /* :focus (not just :focus-visible) because iOS/Android tap-to-focus on a
+     tabindex span doesn't reliably satisfy :focus-visible's keyboard heuristic —
+     without this, tapping a glossed word on mobile shows nothing. */
+  .gloss{touch-action:manipulation;-webkit-tap-highlight-color:transparent}
 
   .chips{display:flex;flex-wrap:wrap;gap:6px}
   .chip{font-family:var(--mono);font-size:10.5px;background:var(--surface-2);border:1px solid var(--line);color:var(--muted);border-radius:100px;padding:5px 10px;cursor:pointer}
