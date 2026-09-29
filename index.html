@@ -1,7 +1,11 @@
+<!doctype html>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Orbital Atlas</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap">
 <style>
   :root{
+    /* 根字級跟著螢幕寬放大：手機 17px、2K 約 25px（Gridsmith 2026-09-29：原稿 9–14.5px 寫死，2K 上幾乎讀不到） */
     --bg:#0a0d16; --bg-2:#0d1220; --surface:#141a2b; --surface-2:#1b2338;
     --text:#eef1fb; --muted:#8b93ac; --accent:#6ec1ff; --save:#ffd166; --skip:#ff6b6b;
     --line:rgba(255,255,255,.09);
@@ -20,13 +24,14 @@
     --c-commercial-bg:rgba(154,166,196,.14); --c-commercial-fg:#9aa6c4;
   }
   *{box-sizing:border-box}
+  html{font-size:clamp(17px, 0.55vw + 11px, 28px)}
   body{
     background:linear-gradient(180deg,var(--bg-2),var(--bg) 60%);
     color:var(--text); font-family:var(--sans); min-height:100%;
     padding:16px; padding-block:calc(16px + env(safe-area-inset-top,0px)) calc(16px + env(safe-area-inset-bottom,0px));
     display:flex; justify-content:center;
   }
-  .app{width:100%;max-width:720px;display:flex;flex-direction:column;gap:16px}
+  .app{width:100%;max-width:min(1500px, 100%);display:flex;flex-direction:column;gap:16px}
 
   /* Touch hygiene (Gem-Drop-Arcade lesson, 2026-09-13): without these four,
      buttons flash grey on tap, long-press pops a copy menu, and every tap
@@ -38,48 +43,41 @@
   }
 
   header{display:flex;align-items:baseline;justify-content:space-between;gap:12px;flex-wrap:wrap}
-  .brand{font-family:var(--mono);font-weight:700;font-size:16px;letter-spacing:.04em}
+  .brand{font-family:var(--mono);font-weight:700;font-size:1.143rem;letter-spacing:.04em}
   .brand span{color:var(--accent)}
-  .tagline{font-family:var(--mono);font-size:10.5px;color:var(--muted);letter-spacing:.03em}
+  .tagline{font-family:var(--mono);font-size:0.857rem;color:var(--muted);letter-spacing:.03em}
 
   .snapshot-note{
-    font-family:var(--mono);font-size:10px;color:var(--muted);background:var(--surface);
+    font-family:var(--mono);font-size:0.857rem;color:var(--muted);background:var(--surface);
     border:1px solid var(--line);border-radius:8px;padding:8px 12px;line-height:1.6;
   }
 
   .guide{display:flex;gap:8px}
   .guide input{
     flex:1;background:var(--surface);border:1px solid var(--line);color:var(--text);
-    border-radius:100px;padding:12px 16px;font-family:var(--sans);font-size:14px;
+    border-radius:100px;padding:12px 16px;font-family:var(--sans);font-size:1rem;
   }
   .guide input:focus{outline:2px solid var(--accent);outline-offset:1px}
   .guide button{
-    font-family:var(--sans);font-weight:600;font-size:13px;background:var(--accent);color:#06111d;
+    font-family:var(--sans);font-weight:600;font-size:0.929rem;background:var(--accent);color:#06111d;
     border:none;border-radius:100px;padding:0 18px;cursor:pointer;
   }
-  .guide-note{font-size:10.5px;color:var(--muted);font-family:var(--mono)}
-  .guide-response{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:12px 14px;font-size:13.5px;line-height:1.5}
+  .guide-note{font-size:0.857rem;color:var(--muted);font-family:var(--mono)}
+  .guide-response{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:12px 14px;font-size:0.964rem;line-height:1.5}
   .guide-response[hidden]{display:none}
   .guide-response .say{color:var(--text);margin-bottom:6px}
   .candidates{display:flex;flex-direction:column;gap:6px}
-  .cand-btn{text-align:left;background:var(--surface-2);border:1px solid var(--line);color:var(--text);border-radius:8px;padding:8px 10px;font-family:var(--sans);font-size:12.5px;cursor:pointer}
+  .cand-btn{text-align:left;background:var(--surface-2);border:1px solid var(--line);color:var(--text);border-radius:8px;padding:8px 10px;font-family:var(--sans);font-size:0.893rem;cursor:pointer}
   .cand-btn:hover{border-color:var(--accent)}
 
-  .section-label{margin:0;font-family:var(--mono);font-size:11px;letter-spacing:.05em;color:var(--muted);text-transform:uppercase}
-  .section-sub{font-size:11.5px;color:var(--muted);margin-top:-4px}
+  .section-label{margin:0;font-family:var(--mono);font-size:0.857rem;letter-spacing:.05em;color:var(--muted);text-transform:uppercase}
+  .section-sub{font-size:0.857rem;color:var(--muted);margin-top:-4px}
 
   .map-wrap{
     background:radial-gradient(circle at 20% 10%, #10182b, var(--surface) 70%);
     border:1px solid var(--line);border-radius:16px;padding:18px 6px 26px;
     overflow-x:auto;
-    /* The map is a diagram, not prose — on a wide monitor it shouldn't be
-       stuck inside the 720px reading column and forced to scroll when the
-       full row would otherwise fit. Prose blocks (guide response, detail
-       panel) stay at 720px for line-length; this one alone breaks out. */
-    width:100%; max-width:1100px; margin-left:auto; margin-right:auto;
-  }
-  @media (min-width:1100px){
-    .map-wrap{ width:100vw; max-width:1100px; margin-left:calc(50% - 50vw); margin-right:calc(50% - 50vw); }
+    width:100%;   /* 地圖跟內文同一欄寬（原本在寬螢幕破欄、左緣被切掉） */
   }
   .track{
     position:relative;display:flex;align-items:flex-end;gap:26px;padding:34px 20px 6px;
@@ -91,13 +89,13 @@
   }
   .slot{position:relative;display:flex;flex-direction:column;align-items:center;gap:6px;flex:none}
   .slot canvas{display:block;image-rendering:pixelated}
-  .slot .label{font-family:var(--mono);font-size:9px;color:var(--muted);letter-spacing:.03em;white-space:nowrap}
+  .slot .label{font-family:var(--mono);font-size:0.857rem;color:var(--muted);letter-spacing:.03em;white-space:nowrap}
   .slot.active canvas{filter:drop-shadow(0 0 6px rgba(110,193,255,.35))}
 
   .bubble{
     position:absolute;bottom:calc(100% + 10px);left:50%;transform:translateX(-50%);
     background:var(--surface-2);border:1px solid var(--accent);color:var(--accent);
-    font-family:var(--sans);font-weight:600;font-size:10.5px;letter-spacing:.01em;
+    font-family:var(--sans);font-weight:600;font-size:0.857rem;letter-spacing:.01em;
     padding:6px 10px;border-radius:8px;white-space:nowrap;cursor:pointer;
   }
   .bubble::after{
@@ -124,22 +122,22 @@
   .list-box{display:flex;flex-direction:column;gap:6px;max-height:230px;overflow-y:auto;padding-right:2px}
   .list-row{
     display:flex;align-items:center;gap:8px;background:var(--surface-2);border-radius:8px;
-    padding:8px 10px;cursor:pointer;font-size:12.5px;
+    padding:8px 10px;cursor:pointer;font-size:0.893rem;
   }
   .list-row:hover{outline:1px solid var(--accent)}
   .list-row .dot{width:8px;height:8px;border-radius:50%;flex:none}
   .list-row .t{flex:1;line-height:1.35}
 
   .detail{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:18px;display:flex;flex-direction:column;gap:12px}
-  .detail-empty{color:var(--muted);font-size:13.5px;text-align:center;padding:20px 0}
+  .detail-empty{color:var(--muted);font-size:0.964rem;text-align:center;padding:20px 0}
   .detail .row-top{display:flex;justify-content:space-between;align-items:flex-start;gap:8px}
-  .tag{font-family:var(--mono);font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;padding:4px 9px;border-radius:100px;white-space:nowrap}
-  .source{font-family:var(--mono);font-size:10px;color:var(--muted);letter-spacing:.05em}
-  .detail h2{font-family:var(--mono);font-size:19px;line-height:1.3;margin:0;font-weight:700;text-wrap:balance}
-  .detail p.blurb{margin:0;font-size:14.5px;line-height:1.65;color:#cfd4e6}
+  .tag{font-family:var(--mono);font-size:0.857rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;padding:4px 9px;border-radius:100px;white-space:nowrap}
+  .source{font-family:var(--mono);font-size:0.857rem;color:var(--muted);letter-spacing:.05em}
+  .detail h2{font-family:var(--mono);font-size:1.357rem;line-height:1.3;margin:0;font-weight:700;text-wrap:balance}
+  .detail p.blurb{margin:0;font-size:1.036rem;line-height:1.65;color:#cfd4e6}
 
   .gloss{border-bottom:1px dotted var(--accent);cursor:help;position:relative;color:#fff}
-  .gloss::after{content:attr(data-def);position:absolute;bottom:130%;left:50%;transform:translateX(-50%);background:#0d1424;color:var(--text);font-family:var(--sans);font-size:11.5px;line-height:1.45;font-weight:400;padding:8px 10px;border-radius:8px;width:min(220px,60vw);opacity:0;visibility:hidden;pointer-events:none;transition:opacity .12s ease;border:1px solid var(--line);box-shadow:0 10px 24px -8px #000c;z-index:20;text-transform:none;letter-spacing:normal}
+  .gloss::after{content:attr(data-def);position:absolute;bottom:130%;left:50%;transform:translateX(-50%);background:#0d1424;color:var(--text);font-family:var(--sans);font-size:0.857rem;line-height:1.45;font-weight:400;padding:8px 10px;border-radius:8px;width:min(220px,60vw);opacity:0;visibility:hidden;pointer-events:none;transition:opacity .12s ease;border:1px solid var(--line);box-shadow:0 10px 24px -8px #000c;z-index:20;text-transform:none;letter-spacing:normal}
   .gloss::before{content:'';position:absolute;bottom:calc(130% - 6px);left:50%;transform:translateX(-50%);border:5px solid transparent;border-top-color:#0d1424;opacity:0;visibility:hidden;transition:opacity .12s ease;z-index:20}
   .gloss:hover::after,.gloss:focus-visible::after,.gloss:focus::after,
   .gloss:hover::before,.gloss:focus-visible::before,.gloss:focus::before{opacity:1;visibility:visible}
@@ -149,16 +147,16 @@
   .gloss{touch-action:manipulation;-webkit-tap-highlight-color:transparent}
 
   .chips{display:flex;flex-wrap:wrap;gap:6px}
-  .chip{font-family:var(--mono);font-size:10.5px;background:var(--surface-2);border:1px solid var(--line);color:var(--muted);border-radius:100px;padding:5px 10px;cursor:pointer}
+  .chip{font-family:var(--mono);font-size:0.857rem;background:var(--surface-2);border:1px solid var(--line);color:var(--muted);border-radius:100px;padding:5px 10px;cursor:pointer}
   .chip:hover{border-color:var(--accent);color:var(--accent)}
 
   .related-list{display:flex;flex-direction:column;gap:6px}
-  .related-item{display:flex;justify-content:space-between;align-items:center;gap:8px;background:var(--surface-2);border-radius:8px;padding:8px 10px;cursor:pointer;font-size:12.5px}
+  .related-item{display:flex;justify-content:space-between;align-items:center;gap:8px;background:var(--surface-2);border-radius:8px;padding:8px 10px;cursor:pointer;font-size:0.893rem}
   .related-item:hover{outline:1px solid var(--accent)}
 
-  .read-link{align-self:flex-start;font-family:var(--mono);font-size:11.5px;color:var(--accent);text-decoration:none;border-bottom:1px solid var(--accent);padding-bottom:1px}
+  .read-link{align-self:flex-start;font-family:var(--mono);font-size:0.857rem;color:var(--accent);text-decoration:none;border-bottom:1px solid var(--accent);padding-bottom:1px}
 
-  footer{font-size:10.5px;color:var(--muted);text-align:center;line-height:1.6}
+  footer{font-size:0.857rem;color:var(--muted);text-align:center;line-height:1.6}
   footer b{color:#aeb6cf}
 </style>
 
@@ -583,7 +581,7 @@
     if(rel.length){
       html += '<div><div class="section-label">Related Articles</div><div class="related-list">' +
         rel.slice(0,3).map(function(r){
-          return '<div class="related-item" data-goto="'+r.other.id+'"><span>'+escapeHtml(r.other.title)+'</span><span style="color:var(--muted);font-family:var(--mono);font-size:10px">via '+escapeHtml(r.shared[0])+'</span></div>';
+          return '<div class="related-item" data-goto="'+r.other.id+'"><span>'+escapeHtml(r.other.title)+'</span><span style="color:var(--muted);font-family:var(--mono);font-size:.857rem">via '+escapeHtml(r.shared[0])+'</span></div>';
         }).join('') + '</div></div>';
     }
     html += '<a class="read-link" href="'+a.url+'" target="_blank" rel="noopener">Read the original article →</a>';
