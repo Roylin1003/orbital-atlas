@@ -71,11 +71,11 @@
   .cand-btn:hover{border-color:var(--accent)}
 
   .section-label{margin:0;font-family:var(--mono);font-size:0.857rem;letter-spacing:.05em;color:var(--muted);text-transform:uppercase}
-  .section-sub{font-size:0.857rem;color:var(--muted);margin-top:-4px}
+  .section-sub{font-size:0.857rem;color:var(--muted);margin-top:0}
 
   .map-wrap{
     background:radial-gradient(circle at 20% 10%, #10182b, var(--surface) 70%);
-    border:1px solid var(--line);border-radius:16px;padding:18px 6px 26px;
+    border:1px solid var(--line);border-radius:16px;padding:3.2rem 6px 26px;   /* 頂端留給泡泡，折兩行也不被切 */
     overflow-x:auto;
     width:100%;   /* 地圖跟內文同一欄寬（原本在寬螢幕破欄、左緣被切掉） */
   }
@@ -96,7 +96,7 @@
     position:absolute;bottom:calc(100% + 10px);left:50%;transform:translateX(-50%);
     background:var(--surface-2);border:1px solid var(--accent);color:var(--accent);
     font-family:var(--sans);font-weight:600;font-size:0.857rem;letter-spacing:.01em;
-    padding:6px 10px;border-radius:8px;white-space:nowrap;cursor:pointer;
+    padding:6px 10px;border-radius:8px;white-space:normal;width:max-content;max-width:7em;text-align:center;line-height:1.25;   /* 長標籤折兩行，相鄰的泡泡才不會互相蓋到 */ cursor:pointer;
   }
   .bubble::after{
     content:'';position:absolute;top:100%;left:50%;transform:translateX(-50%);
